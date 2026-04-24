@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>失败成就馆</title>
+    <meta
+      name="description"
+      content="把翻车现场改写成游戏成就。输入一段糗事，生成成就标题、成就注释和可分享的成就海报。"
+    />
+    <meta property="og:title" content="失败成就馆" />
+    <meta
+      property="og:description"
+      content="输入一段真实发生过的糗事，生成成就标题、成就注释和一张可以发出去的成就海报。"
+    />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="失败成就馆" />
+    <meta
+      name="twitter:description"
+      content="把翻车现场改写成像游戏成就一样的海报。"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Failure to Flex</p>
+          <h1>把翻车现场，改写成一张像游戏成就的海报</h1>
+          <p class="hero-text">
+            输入一段真实发生过的糗事，系统会先提炼里面的笑点、反差和隐藏功绩，再生成成就标题、成就注释，以及一张可以直接发朋友圈或社交媒体的成就海报。
+          </p>
+          <div class="hero-tags">
+            <span>失败包装成就</span>
+            <span>文字海报</span>
+            <span>图片海报</span>
+          </div>
+        </div>
+        <div class="hero-card">
+          <div class="mini-poster">
+            <p class="mini-kicker">今日隐藏成就</p>
+            <h2>厨房炼金术试爆员</h2>
+            <p>把“小苏打嫩肉”实验，成功升级为全屋闻香辨真伪现场。</p>
+          </div>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="panel input-panel">
+          <div class="section-heading">
+            <p class="section-kicker">01</p>
+            <div>
+              <h2>输入今天的翻车现场</h2>
+              <p>越具体越好，系统会更容易提炼出好笑又有力量感的成就名称。</p>
+            </div>
+          </div>
+
+          <label class="field-label" for="storyInput">失败经历</label>
+          <textarea
+            id="storyInput"
+            placeholder="比如：用小苏打腌肉想让肉更鲜嫩，结果炒完一股怪味，搜了一下才知道原来是没洗肉。"
+          ></textarea>
+
+          <div class="action-row">
+            <button id="generateBtn" class="primary-btn">生成我的成就</button>
+            <button id="randomBtn" class="ghost-btn">试试随机示例</button>
+          </div>
+
+          <div class="tips-card">
+            <p>适合生成的内容类型</p>
+            <div class="tips-list">
+              <span>厨房翻车</span>
+              <span>健身误判</span>
+              <span>职场社死</span>
+              <span>恋爱乌龙</span>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel control-panel">
+          <div class="section-heading">
+            <p class="section-kicker">02</p>
+            <div>
+              <h2>挑一个成就身份</h2>
+              <p>我们先给你几个方向，你选最想发出去的那个。</p>
+            </div>
+          </div>
+
+          <div id="achievementList" class="achievement-list"></div>
+
+          <div class="section-heading compact">
+            <p class="section-kicker">03</p>
+            <div>
+              <h2>选海报风格</h2>
+              <p>支持纯文字模式，也支持放一张自己的照片。</p>
+            </div>
+          </div>
+
+          <div id="templateGrid" class="template-grid"></div>
+
+          <div class="toggle-row">
+            <button id="textModeBtn" class="mode-btn active">纯文字海报</button>
+            <button id="photoModeBtn" class="mode-btn">图片成就板</button>
+          </div>
+
+          <label class="upload-field" for="photoInput">
+            <span>上传照片</span>
+            <input id="photoInput" type="file" accept="image/*" />
+          </label>
+
+          <div id="cropControls" class="crop-controls hidden">
+            <div class="crop-header">
+              <h3>调整图片位置</h3>
+              <p>拖动滑块，决定海报里显示照片的哪一部分。</p>
+            </div>
+            <label class="crop-label" for="cropX">
+              <span>左右位置</span>
+              <input id="cropX" type="range" min="0" max="100" value="50" />
+            </label>
+            <label class="crop-label" for="cropY">
+              <span>上下位置</span>
+              <input id="cropY" type="range" min="0" max="100" value="50" />
+            </label>
+          </div>
+        </section>
+
+        <section class="panel preview-panel">
+          <div class="section-heading">
+            <p class="section-kicker">04</p>
+            <div>
+              <h2>成就海报</h2>
+              <p>适合发朋友圈、社交媒体，也适合自己存档笑一笑。</p>
+            </div>
+          </div>
+
+          <div id="poster" class="poster theme-spark">
+            <div class="poster-topline">FAILURE ACHIEVEMENT BOARD</div>
+            <div class="poster-content">
+              <div id="posterPhotoFrame" class="poster-photo-frame hidden">
+                <img id="posterPhoto" alt="用户上传照片预览" />
+                <div class="photo-corner-badge">PHOTO PROOF</div>
+              </div>
+              <div class="poster-text">
+                <p id="posterBadge" class="poster-badge">隐藏成就已解锁</p>
+                <h3 id="posterTitle">先输入一段经历，看看你会解锁什么称号</h3>
+                <p id="posterAnnotation" class="poster-story">
+                  这里会把你的翻车故事，改写成一段更像游戏成就说明的注释文案。
+                </p>
+                <p id="posterInsight" class="poster-insight">隐藏功绩 · 把失败重新命名，就是一种赢法</p>
+                <div class="poster-meta">
+                  <span id="posterTag">成就标签 · 日常乌龙</span>
+                  <span id="posterStamp">失败成就馆</span>
+                </div>
+              </div>
+            </div>
+            <div class="poster-footer">
+              <span id="posterFooterLeft">把失败重新命名，就是一种赢法</span>
+              <span id="posterFooterRight">share your chaos</span>
+            </div>
+          </div>
+
+          <div class="action-row">
+            <button id="downloadBtn" class="primary-btn">下载海报</button>
+            <button id="shareBtn" class="ghost-btn">分享图片</button>
+          </div>
+          <div class="action-row share-actions">
+            <button id="copyLinkBtn" class="ghost-btn">复制分享链接</button>
+            <button id="sharePageBtn" class="ghost-btn">分享网页</button>
+          </div>
+          <p id="shareHint" class="share-hint">
+            分享链接会还原文字内容、模版和文案风格；本地上传的照片不会包含在链接里。
+          </p>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
