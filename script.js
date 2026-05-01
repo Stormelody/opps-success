@@ -138,6 +138,7 @@ const cropYInput = document.getElementById("cropY");
 const poster = document.getElementById("poster");
 const posterBadge = document.getElementById("posterBadge");
 const posterTitle = document.getElementById("posterTitle");
+const posterSummary = document.getElementById("posterSummary");
 const posterAnnotation = document.getElementById("posterAnnotation");
 const posterInsight = document.getElementById("posterInsight");
 const posterTag = document.getElementById("posterTag");
@@ -249,12 +250,79 @@ function buildAchievementOptions(story) {
   const options = Array.from({ length: 4 }, (_, index) => ({
     id: `achievement-${seed}-${index}`,
     title: buildTitle(domain, signals, seed, index),
+    summary: buildFallbackSummary(story),
     annotation: buildAnnotation(domain, signals, seed, index),
     insight: buildInsight(domain, signals, seed, index),
     tag: domain.tag
   }));
 
   return dedupe(options.map((item) => JSON.stringify(item))).map((item) => JSON.parse(item));
+}
+
+function buildFallbackSummary(story) {
+  const domain = detectDomain(story);
+  const signals = detectSignals(story);
+
+  if (domain.id === "kitchen" && signals.hasOversight) return "做菜漏了关键一步";
+  if (domain.id === "coffee") return "做咖啡把杯子弄坏了";
+  if (domain.id === "storage") return "收纳完东西更难找";
+  if (domain.id === "exercise") return "运动还没开始就卡住";
+  if (domain.id === "social") return "场面一下子尴尬了";
+
+  return shortText(story, 18);
+}
+
+function mapAiAchievement(item, index, story) {
+  return {
+    id: `ai-${storySeed(story)}-${index}`,
+    title: normalizeText(item.title || "隐藏成就"),
+    summary: shortText(normalizeText(item.summary || buildFallbackSummary(story)), 20),
+    annotation: normalizeText(item.flavor_text || item.annotation || "这段经历已经成功变成可分享的翻车成就。"),
+    insight: buildAiInsight(item.flavor_text || item.annotation || "", index),
+    tag: pickAiTag(story, index)
+  };
+}
+
+function buildAiInsight(flavorText, index) {
+  const endings = [
+    "隐藏功绩：把错误步骤变成了值得截图的经验包。",
+    "隐藏功绩：用一次小型崩盘，换来下次少踩一个坑。",
+    "隐藏功绩：让自信和现实完成了一次正面碰撞。",
+    "隐藏功绩：把尴尬现场加工成了可传播素材。"
+  ];
+
+  if (/菜谱|小红书|教程|步骤|洗/.test(flavorText)) {
+    return "隐藏功绩：证明教程最重要的部分，通常就是被自信跳过的那一行。";
+  }
+
+  return endings[index % endings.length];
+}
+
+function pickAiTag(story, index) {
+  const domain = detectDomain(story);
+  if (domain.tag) return domain.tag;
+  return ["成就标签 · 翻车记录", "成就标签 · 隐藏成就", "成就标签 · 日常事故", "成就标签 · 笑点回收"][index % 4];
+}
+
+async function generateAchievementsWithAI(story) {
+  const response = await fetch("/api/generate-achievements", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ story })
+  });
+
+  if (!response.ok) {
+    throw new Error("AI generation failed");
+  }
+
+  const payload = await response.json();
+  if (!Array.isArray(payload.achievements) || payload.achievements.length === 0) {
+    throw new Error("AI generation returned no achievements");
+  }
+
+  return payload.achievements.map((item, index) => mapAiAchievement(item, index, story));
 }
 
 function pickDecorativeText(story) {
@@ -274,6 +342,7 @@ function renderAchievements() {
     card.className = `achievement-card${state.selectedAchievement?.id === achievement.id ? " active" : ""}`;
     card.innerHTML = `
       <h3>${achievement.title}</h3>
+      <span class="achievement-summary">${achievement.summary}</span>
       <p>${achievement.annotation}</p>
       <span class="achievement-insight">${achievement.insight}</span>
     `;
@@ -333,6 +402,7 @@ function renderPoster() {
   poster.className = `poster ${state.selectedTheme.className}${hasPhoto ? " with-photo" : ""}`;
   posterBadge.textContent = decorativeText.badge;
   posterTitle.textContent = selected?.title ?? "先输入一段经历，看看你会解锁什么称号";
+  posterSummary.textContent = selected?.summary ?? "失败现场一句话概括会显示在这里。";
   posterAnnotation.textContent = selected?.annotation ?? "这里会把你的翻车故事，改写成一段更像游戏成就说明的注释文案。";
   posterInsight.textContent = selected?.insight ?? "隐藏功绩：把失败重新命名，就是一种赢法。";
   posterTag.textContent = selected?.tag ?? "成就标签 · 日常乌龙";
@@ -347,7 +417,7 @@ function renderPoster() {
   }
 }
 
-function generateAchievements() {
+async function generateAchievements() {
   const story = storyInput.value.trim();
   if (!story) {
     storyInput.focus();
@@ -355,7 +425,20 @@ function generateAchievements() {
   }
 
   state.story = story;
-  state.achievements = buildAchievementOptions(story);
+  generateBtn.disabled = true;
+  generateBtn.textContent = "AI 正在嘴你...";
+
+  try {
+    state.achievements = await generateAchievementsWithAI(story);
+    showShareHint("AI 文案已生成。没有配置 OpenAI Key 时会自动使用本地规则。");
+  } catch {
+    state.achievements = buildAchievementOptions(story);
+    showShareHint("AI 暂时没接上，先用了本地规则生成。配置 OPENAI_API_KEY 后会自动切到 AI。");
+  } finally {
+    generateBtn.disabled = false;
+    generateBtn.textContent = "生成我的成就";
+  }
+
   state.selectedAchievement = state.achievements[0];
   renderAchievements();
   renderPoster();
@@ -374,6 +457,13 @@ function getShareUrl() {
   params.set("theme", state.selectedTheme.id);
   params.set("mode", state.photoDataUrl ? state.posterMode : "text");
   params.set("achievement", String(state.achievements.findIndex((item) => item.id === state.selectedAchievement?.id)));
+  if (state.selectedAchievement) {
+    params.set("summary", state.selectedAchievement.summary || "");
+    params.set("title", state.selectedAchievement.title || "");
+    params.set("annotation", state.selectedAchievement.annotation || "");
+    params.set("insight", state.selectedAchievement.insight || "");
+    params.set("tag", state.selectedAchievement.tag || "");
+  }
   params.set("cropX", String(state.cropX));
   params.set("cropY", String(state.cropY));
   const baseUrl =
@@ -434,6 +524,11 @@ function applySharedStateFromUrl() {
   const sharedThemeId = params.get("theme");
   const sharedMode = params.get("mode");
   const sharedAchievementIndex = Number(params.get("achievement"));
+  const sharedSummary = params.get("summary");
+  const sharedTitle = params.get("title");
+  const sharedAnnotation = params.get("annotation");
+  const sharedInsight = params.get("insight");
+  const sharedTag = params.get("tag");
   const sharedCropX = Number(params.get("cropX"));
   const sharedCropY = Number(params.get("cropY"));
 
@@ -445,6 +540,19 @@ function applySharedStateFromUrl() {
   storyInput.value = sharedStory;
   state.achievements = buildAchievementOptions(sharedStory);
   state.selectedAchievement = state.achievements[sharedAchievementIndex] || state.achievements[0];
+
+  if (sharedTitle && sharedAnnotation) {
+    const sharedAchievement = {
+      id: `shared-${storySeed(sharedStory)}`,
+      title: sharedTitle,
+      summary: sharedSummary || buildFallbackSummary(sharedStory),
+      annotation: sharedAnnotation,
+      insight: sharedInsight || "隐藏功绩：把失败重新命名，就是一种赢法。",
+      tag: sharedTag || "成就标签 · 分享成就"
+    };
+    state.achievements = [sharedAchievement, ...state.achievements.filter((item) => item.title !== sharedTitle)];
+    state.selectedAchievement = sharedAchievement;
+  }
 
   const sharedTheme = themeConfigs.find((theme) => theme.id === sharedThemeId);
   if (sharedTheme) {
@@ -527,18 +635,29 @@ async function exportPosterBlob() {
       x: 120,
       y: 960,
       maxWidth: 840,
-      maxHeight: 140,
+      maxHeight: 110,
       maxFont: 72,
       minFont: 48,
       lineHeightRatio: 1.16,
       fontWeight: 900,
       color: lightText
     });
+    fitAndDrawBlock(ctx, state.selectedAchievement?.summary || "", {
+      x: 120,
+      y: 1074,
+      maxWidth: 760,
+      maxHeight: 42,
+      maxFont: 28,
+      minFont: 22,
+      lineHeightRatio: 1.25,
+      fontWeight: 800,
+      color: lightText
+    });
     fitAndDrawBlock(ctx, state.selectedAchievement?.annotation || "", {
       x: 120,
-      y: 1116,
+      y: 1140,
       maxWidth: 820,
-      maxHeight: 112,
+      maxHeight: 96,
       maxFont: 32,
       minFont: 24,
       lineHeightRatio: 1.55,
@@ -547,9 +666,9 @@ async function exportPosterBlob() {
     });
     fitAndDrawBlock(ctx, state.selectedAchievement?.insight || "", {
       x: 120,
-      y: 1248,
+      y: 1260,
       maxWidth: 780,
-      maxHeight: 64,
+      maxHeight: 54,
       maxFont: 24,
       minFont: 20,
       lineHeightRatio: 1.5,
@@ -561,18 +680,29 @@ async function exportPosterBlob() {
       x: 72,
       y: 300,
       maxWidth: 860,
-      maxHeight: 250,
+      maxHeight: 210,
       maxFont: 88,
       minFont: 54,
       lineHeightRatio: 1.12,
       fontWeight: 900,
       color: lightText
     });
+    fitAndDrawBlock(ctx, state.selectedAchievement?.summary || "", {
+      x: 72,
+      y: 555,
+      maxWidth: 720,
+      maxHeight: 46,
+      maxFont: 30,
+      minFont: 22,
+      lineHeightRatio: 1.25,
+      fontWeight: 800,
+      color: lightText
+    });
     fitAndDrawBlock(ctx, state.selectedAchievement?.annotation || "", {
       x: 72,
-      y: 610,
+      y: 635,
       maxWidth: 860,
-      maxHeight: 260,
+      maxHeight: 235,
       maxFont: 36,
       minFont: 26,
       lineHeightRatio: 1.58,
