@@ -19,11 +19,11 @@
 - [index.html](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/index.html) 页面结构
 - [styles.css](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/styles.css) 视觉样式
 - [script.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/script.js) 生成逻辑与导出逻辑
-- [api/generate-achievements.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/api/generate-achievements.js) 硅基流动 DeepSeek 文案生成接口
+- [netlify/functions/generate-achievements.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/netlify/functions/generate-achievements.js) 硅基流动 DeepSeek 文案生成接口
 
 ## 环境变量
 
-- `SILICONFLOW_API_KEY` 必填。部署到 Vercel 后，在 Project Settings -> Environment Variables 中添加。
+- `SILICONFLOW_API_KEY` 必填。部署到 Netlify 后，在 Site configuration -> Environment variables 中添加。
 - `SILICONFLOW_MODEL` 可选。默认使用 `deepseek-ai/DeepSeek-V3.2`，可按需要替换为硅基流动支持的 DeepSeek 模型。
 - `SILICONFLOW_BASE_URL` 可选。默认使用 `https://api.siliconflow.com/v1`。
 
@@ -43,7 +43,7 @@
 
 ## 上线方式
 
-- 当前项目是纯静态网页，适合直接部署到 Vercel、Netlify、Cloudflare Pages 或 GitHub Pages。
-- 已包含 [vercel.json](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/vercel.json)，直接导入仓库即可上线。
+- 当前项目适合直接部署到 Netlify。
+- 已包含 [netlify.toml](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/netlify.toml)，导入 GitHub 仓库后，Netlify 会自动发布根目录静态文件，并把 `/api/generate-achievements` 转发到 Netlify Function。
 - 只有部署到 `http` 或 `https` 地址后，“复制分享链接”和“分享网页”才真正适合发给别人打开。
 - 本地上传的照片不会被塞进分享链接里；如果要分享带照片的结果，建议导出图片后单独发布。

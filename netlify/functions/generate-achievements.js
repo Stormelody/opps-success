@@ -39,22 +39,19 @@ const STYLE_ANGLES = [
 const DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2";
 const DEFAULT_BASE_URL = "https://api.siliconflow.com/v1";
 
-module.exports = async function handler(request, response) {
-  if (request.method !== "POST") {
-    response.setHeader("Allow", "POST");
-    response.status(405).json({ error: "Method not allowed" });
-    return;
+exports.handler = async function handler(event) {
+  if (event.httpMethod !== "POST") {
+    return jsonResponse(405, { error: "Method not allowed" }, { Allow: "POST" });
   }
 
-  const story = `${request.body?.story || ""}`.trim();
+  const body = safeParseJson(event.body);
+  const story = `${body.story || ""}`.trim();
   if (!story) {
-    response.status(400).json({ error: "Missing story" });
-    return;
+    return jsonResponse(400, { error: "Missing story" });
   }
 
   if (!process.env.SILICONFLOW_API_KEY) {
-    response.status(503).json({ error: "Missing SILICONFLOW_API_KEY" });
-    return;
+    return jsonResponse(503, { error: "Missing SILICONFLOW_API_KEY" });
   }
 
   try {
@@ -62,12 +59,12 @@ module.exports = async function handler(request, response) {
       STYLE_ANGLES.map((angle) => generateOneAchievement(story, angle))
     );
 
-    response.status(200).json({
+    return jsonResponse(200, {
       achievements: dedupeAchievements(achievements),
       model: process.env.SILICONFLOW_MODEL || DEFAULT_MODEL
     });
   } catch (error) {
-    response.status(500).json({
+    return jsonResponse(500, {
       error: "AI generation failed",
       detail: error instanceof Error ? error.message : "Unknown error"
     });
@@ -115,6 +112,14 @@ async function generateOneAchievement(story, angle) {
   return normalizeAchievement(parseJsonContent(text));
 }
 
+function safeParseJson(value) {
+  try {
+    return JSON.parse(value || "{}");
+  } catch {
+    return {};
+  }
+}
+
 function parseJsonContent(text) {
   const trimmed = `${text || ""}`.trim();
   try {
@@ -149,4 +154,15 @@ function dedupeAchievements(items) {
     seen.add(key);
     return true;
   });
+}
+
+function jsonResponse(statusCode, body, headers = {}) {
+  return {
+    statusCode,
+    headers: {
+      "Content-Type": "application/json",
+      ...headers
+    },
+    body: JSON.stringify(body)
+  };
 }

@@ -483,7 +483,7 @@ async function copyShareLink() {
     await navigator.clipboard.writeText(url);
     showShareHint(
       window.location.protocol === "file:"
-        ? "链接已经复制，但要真正发给别人打开，建议先部署到 Vercel、Netlify 或你自己的域名。"
+        ? "链接已经复制，但要真正发给别人打开，建议先部署到 Netlify 或你自己的域名。"
         : "分享链接已复制。别人打开后会看到同样的故事和成就卡，照片不会随链接带过去。"
     );
   } catch {
