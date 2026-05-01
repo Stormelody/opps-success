@@ -5,7 +5,7 @@
 ## 当前能力
 
 - 输入一段失败经历
-- 优先使用 OpenAI 生成 4 个成就候选，没有配置 API 时自动回退到本地规则
+- 优先通过硅基流动调用 DeepSeek 生成 4 个成就候选，没有配置 API 时自动回退到本地规则
 - 每个候选包含一句话概括、成就标题、成就注释和隐藏功绩
 - 选择不同海报风格模版
 - 支持纯文字海报
@@ -19,12 +19,13 @@
 - [index.html](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/index.html) 页面结构
 - [styles.css](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/styles.css) 视觉样式
 - [script.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/script.js) 生成逻辑与导出逻辑
-- [api/generate-achievements.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/api/generate-achievements.js) OpenAI 文案生成接口
+- [api/generate-achievements.js](/Users/ikuka/Documents/Codex/2026-04-24/app-app-ai/api/generate-achievements.js) 硅基流动 DeepSeek 文案生成接口
 
 ## 环境变量
 
-- `OPENAI_API_KEY` 必填。部署到 Vercel 后，在 Project Settings -> Environment Variables 中添加。
-- `OPENAI_MODEL` 可选。默认使用 `gpt-5.4-mini`，可按需要替换为你账号可用的模型。
+- `SILICONFLOW_API_KEY` 必填。部署到 Vercel 后，在 Project Settings -> Environment Variables 中添加。
+- `SILICONFLOW_MODEL` 可选。默认使用 `deepseek-ai/DeepSeek-V3.2`，可按需要替换为硅基流动支持的 DeepSeek 模型。
+- `SILICONFLOW_BASE_URL` 可选。默认使用 `https://api.siliconflow.com/v1`。
 
 ## 下一步最值得做的升级
 

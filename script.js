@@ -430,10 +430,10 @@ async function generateAchievements() {
 
   try {
     state.achievements = await generateAchievementsWithAI(story);
-    showShareHint("AI 文案已生成。没有配置 OpenAI Key 时会自动使用本地规则。");
+    showShareHint("DeepSeek 文案已生成。没有配置硅基流动 Key 时会自动使用本地规则。");
   } catch {
     state.achievements = buildAchievementOptions(story);
-    showShareHint("AI 暂时没接上，先用了本地规则生成。配置 OPENAI_API_KEY 后会自动切到 AI。");
+    showShareHint("DeepSeek 暂时没接上，先用了本地规则生成。配置 SILICONFLOW_API_KEY 后会自动切到 AI。");
   } finally {
     generateBtn.disabled = false;
     generateBtn.textContent = "生成我的成就";

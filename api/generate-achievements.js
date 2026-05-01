@@ -36,27 +36,8 @@ const STYLE_ANGLES = [
   "角度D：更强调荒诞后果和翻车反差。"
 ];
 
-const DEFAULT_MODEL = "gpt-5.4-mini";
-
-const JSON_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["summary", "title", "flavor_text"],
-  properties: {
-    summary: {
-      type: "string",
-      maxLength: 24
-    },
-    title: {
-      type: "string",
-      maxLength: 16
-    },
-    flavor_text: {
-      type: "string",
-      maxLength: 160
-    }
-  }
-};
+const DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2";
+const DEFAULT_BASE_URL = "https://api.siliconflow.com/v1";
 
 module.exports = async function handler(request, response) {
   if (request.method !== "POST") {
@@ -71,8 +52,8 @@ module.exports = async function handler(request, response) {
     return;
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    response.status(503).json({ error: "Missing OPENAI_API_KEY" });
+  if (!process.env.SILICONFLOW_API_KEY) {
+    response.status(503).json({ error: "Missing SILICONFLOW_API_KEY" });
     return;
   }
 
@@ -83,7 +64,7 @@ module.exports = async function handler(request, response) {
 
     response.status(200).json({
       achievements: dedupeAchievements(achievements),
-      model: process.env.OPENAI_MODEL || DEFAULT_MODEL
+      model: process.env.SILICONFLOW_MODEL || DEFAULT_MODEL
     });
   } catch (error) {
     response.status(500).json({
@@ -94,15 +75,16 @@ module.exports = async function handler(request, response) {
 };
 
 async function generateOneAchievement(story, angle) {
-  const openaiResponse = await fetch("https://api.openai.com/v1/responses", {
+  const baseUrl = process.env.SILICONFLOW_BASE_URL || DEFAULT_BASE_URL;
+  const siliconFlowResponse = await fetch(`${baseUrl}/chat/completions`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${process.env.SILICONFLOW_API_KEY}`,
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || DEFAULT_MODEL,
-      input: [
+      model: process.env.SILICONFLOW_MODEL || DEFAULT_MODEL,
+      messages: [
         {
           role: "system",
           content: SYSTEM_PROMPT
@@ -112,34 +94,38 @@ async function generateOneAchievement(story, angle) {
           content: `${angle}\n\n用户故事：${story}`
         }
       ],
-      text: {
-        format: {
-          type: "json_schema",
-          name: "failure_achievement",
-          schema: JSON_SCHEMA,
-          strict: true
-        }
+      temperature: 0.9,
+      top_p: 0.8,
+      response_format: {
+        type: "json_object"
       }
     })
   });
 
-  if (!openaiResponse.ok) {
-    const errorText = await openaiResponse.text();
+  if (!siliconFlowResponse.ok) {
+    const errorText = await siliconFlowResponse.text();
     throw new Error(errorText);
   }
 
-  const payload = await openaiResponse.json();
-  const text = payload.output_text || extractOutputText(payload);
-  return normalizeAchievement(JSON.parse(text));
+  const payload = await siliconFlowResponse.json();
+  const text = payload.choices?.[0]?.message?.content;
+  if (!text) {
+    throw new Error("No content in SiliconFlow response");
+  }
+  return normalizeAchievement(parseJsonContent(text));
 }
 
-function extractOutputText(payload) {
-  const content = payload.output?.flatMap((item) => item.content || []) || [];
-  const textItem = content.find((item) => item.type === "output_text" && item.text);
-  if (!textItem) {
-    throw new Error("No output_text in OpenAI response");
+function parseJsonContent(text) {
+  const trimmed = `${text || ""}`.trim();
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const jsonMatch = trimmed.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error("SiliconFlow response was not JSON");
+    }
+    return JSON.parse(jsonMatch[0]);
   }
-  return textItem.text;
 }
 
 function normalizeAchievement(item) {
