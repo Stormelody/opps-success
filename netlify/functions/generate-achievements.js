@@ -36,10 +36,14 @@ const STYLE_ANGLES = [
   "角度D：更强调荒诞后果和翻车反差。"
 ];
 
-const DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3.2";
+const DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3";
 const DEFAULT_BASE_URL = "https://api.siliconflow.com/v1";
 
 exports.handler = async function handler(event) {
+  if (event.httpMethod === "OPTIONS") {
+    return jsonResponse(204, {});
+  }
+
   if (event.httpMethod !== "POST") {
     return jsonResponse(405, { error: "Method not allowed" }, { Allow: "POST" });
   }
@@ -54,21 +58,32 @@ exports.handler = async function handler(event) {
     return jsonResponse(503, { error: "Missing SILICONFLOW_API_KEY" });
   }
 
-  try {
-    const achievements = await Promise.all(
-      STYLE_ANGLES.map((angle) => generateOneAchievement(story, angle))
-    );
+  const achievements = [];
+  const errors = [];
 
-    return jsonResponse(200, {
-      achievements: dedupeAchievements(achievements),
+  for (const angle of STYLE_ANGLES) {
+    try {
+      achievements.push(await generateOneAchievement(story, angle));
+    } catch (error) {
+      const message = getErrorMessage(error);
+      errors.push(message);
+      console.error("SiliconFlow achievement generation failed:", message);
+    }
+  }
+
+  if (achievements.length === 0) {
+    return jsonResponse(502, {
+      error: "AI generation failed",
+      detail: errors[0] || "SiliconFlow returned no usable achievement",
       model: process.env.SILICONFLOW_MODEL || DEFAULT_MODEL
     });
-  } catch (error) {
-    return jsonResponse(500, {
-      error: "AI generation failed",
-      detail: error instanceof Error ? error.message : "Unknown error"
-    });
   }
+
+  return jsonResponse(200, {
+    achievements: dedupeAchievements(achievements),
+    model: process.env.SILICONFLOW_MODEL || DEFAULT_MODEL,
+    warnings: errors.slice(0, 2)
+  });
 };
 
 async function generateOneAchievement(story, angle) {
@@ -88,14 +103,11 @@ async function generateOneAchievement(story, angle) {
         },
         {
           role: "user",
-          content: `${angle}\n\n用户故事：${story}`
+          content: `${angle}\n\n用户故事：${story}\n\n只输出 JSON，不要 Markdown 代码块，不要解释。`
         }
       ],
       temperature: 0.9,
-      top_p: 0.8,
-      response_format: {
-        type: "json_object"
-      }
+      top_p: 0.8
     })
   });
 
@@ -156,11 +168,19 @@ function dedupeAchievements(items) {
   });
 }
 
+function getErrorMessage(error) {
+  const message = error instanceof Error ? error.message : `${error || "Unknown error"}`;
+  return message.slice(0, 600);
+}
+
 function jsonResponse(statusCode, body, headers = {}) {
   return {
     statusCode,
     headers: {
       "Content-Type": "application/json",
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "Content-Type",
+      "Access-Control-Allow-Methods": "POST, OPTIONS",
       ...headers
     },
     body: JSON.stringify(body)

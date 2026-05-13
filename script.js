@@ -314,7 +314,8 @@ async function generateAchievementsWithAI(story) {
   });
 
   if (!response.ok) {
-    throw new Error("AI generation failed");
+    const errorPayload = await response.json().catch(() => null);
+    throw new Error(errorPayload?.detail || errorPayload?.error || "AI generation failed");
   }
 
   const payload = await response.json();
@@ -431,9 +432,11 @@ async function generateAchievements() {
   try {
     state.achievements = await generateAchievementsWithAI(story);
     showShareHint("DeepSeek 文案已生成。没有配置硅基流动 Key 时会自动使用本地规则。");
-  } catch {
+  } catch (error) {
+    console.error("DeepSeek generation failed:", error);
     state.achievements = buildAchievementOptions(story);
-    showShareHint("DeepSeek 暂时没接上，先用了本地规则生成。配置 SILICONFLOW_API_KEY 后会自动切到 AI。");
+    const message = error instanceof Error ? error.message : "未知错误";
+    showShareHint(`DeepSeek 暂时没接上，先用了本地规则生成。错误：${shortText(message, 80)}`);
   } finally {
     generateBtn.disabled = false;
     generateBtn.textContent = "生成我的成就";

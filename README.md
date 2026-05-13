@@ -24,7 +24,7 @@
 ## 环境变量
 
 - `SILICONFLOW_API_KEY` 必填。部署到 Netlify 后，在 Site configuration -> Environment variables 中添加。
-- `SILICONFLOW_MODEL` 可选。默认使用 `deepseek-ai/DeepSeek-V3.2`，可按需要替换为硅基流动支持的 DeepSeek 模型。
+- `SILICONFLOW_MODEL` 可选。默认使用 `deepseek-ai/DeepSeek-V3`，可按需要替换为硅基流动支持的 DeepSeek 模型。
 - `SILICONFLOW_BASE_URL` 可选。默认使用 `https://api.siliconflow.com/v1`。
 
 ## 下一步最值得做的升级
