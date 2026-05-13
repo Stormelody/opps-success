@@ -305,6 +305,10 @@ function pickAiTag(story, index) {
 }
 
 async function generateAchievementsWithAI(story) {
+  if (window.location.protocol === "file:") {
+    throw new Error("当前是本地 file 预览，无法访问 Netlify Function。请打开 Netlify 线上网址测试 AI。");
+  }
+
   const response = await fetch("/api/generate-achievements", {
     method: "POST",
     headers: {
@@ -978,3 +982,6 @@ renderThemes();
 textModeBtn.classList.toggle("active", state.posterMode === "text");
 photoModeBtn.classList.toggle("active", state.posterMode === "photo");
 renderPoster();
+if (window.location.protocol === "file:") {
+  showShareHint("当前打开的是本地 file 预览，只会显示本地规则文案；AI 生成需要在 Netlify 线上网址里测试。");
+}
